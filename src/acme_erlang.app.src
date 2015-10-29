@@ -5,7 +5,9 @@
   {mod, {'acme_erlang_app', []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    public_key,
+    hackney
    ]},
   {env,[]},
   {modules, []},

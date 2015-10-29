@@ -28,7 +28,19 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    Key = jwk:generate_key(rsa),
+    DirUrl = <<"http://127.0.0.1:4000/directory">>,
+    ChildSpecs = [
+        #{
+            id => acme_server,
+            start => {acme_server, start_link, [Key, DirUrl]},
+            restart => permanent,
+            shutdown => brutal_kill,
+            type => worker,
+            modules => [acme_server]
+        }
+    ],
+    {ok, { {one_for_all, 0, 1}, ChildSpecs} }.
 
 %%====================================================================
 %% Internal functions

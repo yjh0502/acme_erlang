@@ -4,8 +4,8 @@ new_reg(Key, Nonce) ->
     Payload = jsx:encode(#{
         resource => 'new-reg',
         contact => [
-            <<"mailto:sh.kang@5minlab.com">>,
-            <<"tel:+821076280502">>
+            <<"mailto:root@example.com">>,
+            <<"tel:+123456789012">>
         ],
         agreement => <<"http://127.0.0.1:4001/terms/v1">>
     }),
@@ -17,7 +17,7 @@ new_authz(Key, Nonce) ->
         resource => 'new-authz',
         identifier => #{
             type => dns,
-            value => <<"testbed.5ml.io">>
+            value => <<"example.com">>
         },
         agreement => <<"http://127.0.0.1:4001/terms/v1">>,
         authorizations => <<"http://127.0.0.1:4000/acme/reg/1/authz">>,
