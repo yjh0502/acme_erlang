@@ -69,7 +69,8 @@ to_bin(Integer) ->
     <<Integer:(ByteSize*8)/integer>>.
 
 generate_key(rsa) ->
-    Key = openssl:gen_rsa(),
+    Pem = openssl:gen_rsa(),
+    [Key] = public_key:pem_decode(Pem),
     {
         'RSAPrivateKey','two-prime',
         N, E, D, P, Q, Dp, Dq, Qi, asn1_NOVALUE
@@ -144,5 +145,10 @@ ec_sig_encode_test() ->
     S = <<0,111,6,105,44,5,41,208,128,61,152,40,92,61,152,4,150,66,60,69,247,196,170,81,193,199,78,59,194,169,16,124,9,143,42,142,131,48,206,238,34,175,83,203,220,159,3,107,155,22,27,73,111,68,68,21,238,144,229,232,148,188,222,59,242,103>>,
     Sig = <<"AdwMgeerwtHoh-l192l60hp9wAHZFVJbLfD_UxMi70cwnZOYaRI1bKPWROc-mZZqwqT2SI-KGDKB34XO0aw_7XdtAG8GaSwFKdCAPZgoXD2YBJZCPEX3xKpRwcdOO8KpEHwJjyqOgzDO7iKvU8vcnwNrmxYbSW9ERBXukOXolLzeO_Jn">>,
     ?assertEqual(Sig, base64url:encode(<<R/binary, S/binary>>)).
+
+generate_key_test() ->
+    generate_key(rsa),
+    generate_key(ecdsa),
+    ok.
 
 -endif.
