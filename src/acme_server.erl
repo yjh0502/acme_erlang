@@ -71,5 +71,5 @@ post(Url, Key, Nonce, Payload) ->
 
 parse_resp({ok, StatusCode, RespHeaders, Ref}) ->
     {_, Nonce} = lists:keyfind(<<"Replay-Nonce">>, 1, RespHeaders),
-    Body = hackney:body(Ref),
+    {ok, Body} = hackney:body(Ref),
     {Nonce, Body}.
