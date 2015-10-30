@@ -8,7 +8,7 @@ gen_rsa() ->
     list_to_binary(os:cmd("openssl genrsa 2> /dev/null")).
 
 gen_csr(Key, DomainName) ->
-    Cmd = iolist_to_binary(["openssl req -new -sha256 -key /proc/self/fd/0 -subj '/CN=", DomainName, "' -out /proc/self/fd/1"]),
+    Cmd = iolist_to_binary(["openssl req -outform der -new -sha256 -key /proc/self/fd/0 -subj '/CN=", DomainName, "' -out /proc/self/fd/1"]),
     Port = open_port({spawn, Cmd}, ?PORT_OPT),
     Port ! {self(), {command, Key}},
     do_read(Port).
