@@ -1,25 +1,37 @@
 -module(jws).
 
--export([sign/3, verify/1]).
+-export([sign/2, sign/3, verify/1]).
+
+%% @doc sign without nonce
+sign(BinKey, Payload) ->
+    sign(BinKey, <<>>, Payload).
 
 sign(BinKey, Nonce, Payload) ->
     Key = jsx:decode(BinKey, [{labels, attempt_atom}, return_maps]),
-    ProtectedHeader = case Key of
+    KeyHeader = case Key of
         #{crv := <<"P-521">>} ->
-            jsx:encode(#{
+            #{
                 alg => 'ES512',
-                nonce => Nonce,
                 jwk => maps:with([kty, kid, use, crv, x, y], Key)
-            });
+            };
         #{kty := <<"RSA">>} ->
-            jsx:encode(#{
+            #{
                 alg => 'RS256',
-                nonce => Nonce,
                 jwk => maps:with([kty, kid, use, n, e], Key)
-            });
+            };
         _ ->
             throw(not_supported_key)
     end,
+    ProtectedHeaderMap = case Nonce of
+        <<>> ->
+            KeyHeader;
+        _ ->
+            KeyHeader#{
+                nonce => Nonce
+            }
+    end,
+
+    ProtectedHeader = jsx:encode(ProtectedHeaderMap),
     ProtectedBase64 = base64url:encode(ProtectedHeader),
     PayloadBase64 = base64url:encode(Payload),
     SignInput = <<ProtectedBase64/binary, ".", PayloadBase64/binary>>,
