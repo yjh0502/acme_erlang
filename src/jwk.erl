@@ -1,8 +1,13 @@
 -module(jwk).
 
 -export([generate_key/1, sign/2, verify/3]).
+-export([from_pem/1, to_pem/1]).
 
 -include_lib("public_key/include/public_key.hrl").
+
+sign(BinKey, Data) when is_binary(BinKey) ->
+    Key = jsx:decode(BinKey, [{labels, attempt_atom}, return_maps]),
+    sign(Key, Data);
 
 sign(#{kty := <<"RSA">>, n := N, e := E, d := D, p := P, q := Q, dp := Dp, dq := Dq, qi := Qi}, Data) ->
     Key = [
@@ -69,20 +74,7 @@ to_bin(Integer) ->
     <<Integer:(ByteSize*8)/integer>>.
 
 generate_key(rsa) ->
-    Pem = openssl:gen_rsa(),
-    [Key] = public_key:pem_decode(Pem),
-    {
-        'RSAPrivateKey','two-prime',
-        N, E, D, P, Q, Dp, Dq, Qi, asn1_NOVALUE
-    } = public_key:pem_entry_decode(Key),
-    jsx:encode(#{
-        kty => 'RSA',
-        use => sig,
-        n => to_base64(N),
-        e => to_base64(E),
-        d => to_base64(D), p => to_base64(P), q => to_base64(Q),
-        dp => to_base64(Dp), dq => to_base64(Dq), qi => to_base64(Qi)
-    });
+    from_pem(openssl:gen_rsa());
 
 generate_key(ecdsa) ->
     {Pk,Sk} = crypto:generate_key(ecdh, secp521r1),
@@ -98,6 +90,37 @@ generate_key(ecdsa) ->
         y => base64url:encode(Y),
         d => base64url:encode(PaddedSk)
     }).
+
+from_pem(Pem) ->
+    [Key] = public_key:pem_decode(Pem),
+    {
+        'RSAPrivateKey','two-prime',
+        N, E, D, P, Q, Dp, Dq, Qi, asn1_NOVALUE
+    } = public_key:pem_entry_decode(Key),
+    jsx:encode(#{
+        kty => 'RSA',
+        use => sig,
+        n => to_base64(N),
+        e => to_base64(E),
+        d => to_base64(D), p => to_base64(P), q => to_base64(Q),
+        dp => to_base64(Dp), dq => to_base64(Dq), qi => to_base64(Qi)
+    }).
+
+to_pem(Key) ->
+    case jsx:decode(Key, [{labels, attempt_atom}, return_maps]) of
+        #{kty := <<"RSA">>,
+            n := N, e := E, d := D, p := P, q := Q,
+            dp := Dp, dq := Dq, qi := Qi} ->
+            TupleKey = {
+                'RSAPrivateKey','two-prime',
+                from_base64(N), from_base64(E),
+                from_base64(D), from_base64(P), from_base64(Q),
+                from_base64(Dp), from_base64(Dq), from_base64(Qi),
+                asn1_NOVALUE
+            },
+            PemKey = public_key:pem_entry_encode('RSAPrivateKey', TupleKey),
+            public_key:pem_encode([PemKey])
+    end.
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -145,6 +168,11 @@ ec_sig_encode_test() ->
     S = <<0,111,6,105,44,5,41,208,128,61,152,40,92,61,152,4,150,66,60,69,247,196,170,81,193,199,78,59,194,169,16,124,9,143,42,142,131,48,206,238,34,175,83,203,220,159,3,107,155,22,27,73,111,68,68,21,238,144,229,232,148,188,222,59,242,103>>,
     Sig = <<"AdwMgeerwtHoh-l192l60hp9wAHZFVJbLfD_UxMi70cwnZOYaRI1bKPWROc-mZZqwqT2SI-KGDKB34XO0aw_7XdtAG8GaSwFKdCAPZgoXD2YBJZCPEX3xKpRwcdOO8KpEHwJjyqOgzDO7iKvU8vcnwNrmxYbSW9ERBXukOXolLzeO_Jn">>,
     ?assertEqual(Sig, base64url:encode(<<R/binary, S/binary>>)).
+
+pem_test() ->
+    Key = generate_key(rsa),
+    PemKey = to_pem(Key),
+    ?assertEqual(Key, from_pem(PemKey)).
 
 generate_key_test() ->
     generate_key(rsa),
