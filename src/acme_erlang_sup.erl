@@ -28,16 +28,17 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    Key = jwk:generate_key(rsa),
+    {ok, Pem} = file:read_file("key/id_rsa"),
+    Key = jwk:from_pem(Pem),
     DirUrl = <<"http://127.0.0.1:4000/directory">>,
     ChildSpecs = [
-        #{
-            id => acme_server,
-            start => {acme_server, start_link, [Key, DirUrl]},
-            restart => permanent,
-            shutdown => brutal_kill,
-            type => worker,
-            modules => [acme_server]
+        {
+            acme_server,
+            {acme_server, start_link, [Key, DirUrl]},
+            permanent,
+            brutal_kill,
+            worker,
+            [acme_server]
         }
     ],
     {ok, { {one_for_all, 0, 1}, ChildSpecs} }.

@@ -16,10 +16,19 @@
 %%====================================================================
 
 start(_StartType, _StartArgs) ->
+    Dispatch = cowboy_router:compile([
+        {'_', [
+            {"/.well-known/acme-challenge/[...]", cowboy_static, {dir, "www"}}
+        ]}
+    ]),
+    {ok, _} = cowboy:start_http(my_http_listener, 100, [{port, 5002}],
+        [{env, [{dispatch, Dispatch}]}]
+    ),
     'acme_erlang_sup':start_link().
 
 %%--------------------------------------------------------------------
 stop(_State) ->
+    cowboy:stop_listener(my_http_listener),
     ok.
 
 %%====================================================================
